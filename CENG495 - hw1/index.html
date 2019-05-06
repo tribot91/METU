@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>metuQR</title>
+	<link href="metuQR.css" rel="stylesheet" type="text/css" media="all">
+	<script type="text/javascript" src="metuQR.js"></script>
+</head>
+
+<body>
+	<div class="title">
+		<div style="color:rgb(227, 24, 55)">metu</div>
+		<div style="color: white; padding: 0 50px">QR</div>
+	</div>
+	<div class="left">
+		<div style="border-bottom: 5px solid rgb(227, 24, 55); border-top: 5px solid rgb(227, 24, 55); border-radius: 10px;">
+			<div style="display: flex; justify-content: center; align-items: center;">
+				<div class="button" style="color: rgb(227, 24, 55)">
+					Create
+				</div>
+			</div>
+			<div>
+				<div style="display: flex;">
+					<input id="textToQR" placeholder="Text to QR" value="metuQR" style="width: 100%; margin-bottom: 5px">
+				</div>
+
+				<div>
+					<select id="d1" style="left:0; width: 140px">
+						<option value='000'>Black</option>
+						<option value='fff'>White</option>
+						<option value='f00'>Red</option>
+						<option value='00f'>Blue</option>
+						<option value='fd0'>Gold</option>
+					</select>
+					<select id="d2" style="left:0; width: 220px">
+						<option value='fff'>White</option>
+						<option value='000'>Black</option>
+						<option value='f00'>Red</option>
+						<option value='00f'>Blue</option>
+						<option value='fd0'>Gold</option>
+					</select>
+					<input type="submit" onclick="getQR()" value="Create QR code" style="background: rgb(227, 24, 55); color: white; font-weight: bold;" />
+				</div>
+			</div>
+			<div id="qr"></div>
+		</div>
+	</div>
+	<div class="right">
+		<div style="border-bottom: 5px solid white; border-top: 5px solid white; border-radius: 10px;">
+			<div style="display: flex; justify-content: center; align-items: center">
+				<div class="white-button">
+					Read
+				</div>
+			</div>
+
+			<form enctype="multipart/form-data" action="http://api.qrserver.com/v1/read-qr-code/" method="POST" style="display: flex; flex-wrap: wrap; background: white; color: rgb(227, 24, 55); font-weight: bold; margin-bottom: 25px;">
+				<input type="hidden" name="MAX_FILE_SIZE" value="1048576" />
+				<input name="file" type="file" style="width: 25vw; margin-right: 5px;" />
+				<input type="submit" value="Read QR code" />
+			</form>
+		</div>
+	</div>
+</body>
+
+</html>

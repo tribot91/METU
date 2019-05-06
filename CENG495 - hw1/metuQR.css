@@ -1,0 +1,102 @@
+html {
+	height: 100%;
+}
+
+body {
+	display: flex;
+	justify-content: center;
+	background-color: rgb(227, 24, 55);
+	height: 100%;
+	margin: 0;
+}
+
+.title {
+	position: absolute;
+	font-size: 100px;
+	z-index: 100;
+	display: flex;
+}
+
+.left {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
+	background-color: white;
+	width: 100%;
+}
+/*
+.left::after {
+	content: '';
+	position: absolute;
+	left: 45%;
+	border-right: 100px solid transparent;
+	border-top: 100vh solid white;
+}
+*/
+.right {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-weight: bold;
+	color: white;
+	width: 100%;
+}
+
+.button {
+	padding: 20px;
+	text-align: center;
+	font-size: 25px;
+	width: 100%;
+}
+
+.white-button {
+	margin: 25px 0;
+	padding: 20px;
+	text-align: center;
+	font-size: 25px;
+	/*width: 10vw;*/
+	width: 100%;
+}
+
+#qr {
+	margin: 25px 0;
+	display: flex;
+	justify-content: center;
+	height: 0;
+}
+
+.qr-active {
+	height: 200px !important;
+	transition: all 0.5s ease-out;
+}
+
+input {
+	text-align: center;
+}
+
+input::placeholder { 
+	color: white;
+	text-align: center;
+}
+
+/* dropdown */
+select, input {
+	padding: 10px 15px;
+	border: 1px solid white;
+	border-radius: 4px;
+	background-color: rgb(227, 24, 55);
+	color: white;
+	font-size: 20px;
+}
+/*
+@media only screen and (max-width: 1000px) {
+	.left::after {
+		display: none;
+	}
+
+	.title {
+		left: 32%;
+	}    
+}
+*/
