@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>metuShop User</title>
+	<link href="metuShop.css" rel="stylesheet" type="text/css" media="all">
+	<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.3.1/stitch.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+	<script>
+		const client = stitch.Stitch.initializeDefaultAppClient('trishop-ewxtm');
+		const db = client.getServiceClient(stitch.RemoteMongoClient.factory, 'mongodb-atlas').db('metuShop');
+		let currentUser = {};
+
+		db.collection('users').findOne({ owner_id: JSON.parse(localStorage.getItem('user')).owner_id }, true).then(user => {
+			currentUser = user;
+			getProductList();
+
+			for (let i = 0; i < document.getElementsByClassName('box').length; i++) {
+				document.getElementsByClassName('box')[i].style.backgroundColor = JSON.parse(localStorage.getItem('color')).color1; //|| "rgb(227, 24, 55, 0.1)"; COLOR
+				document.getElementsByClassName('box')[i].style.border = `1px solid ${JSON.parse(localStorage.getItem('color')).color2}`;
+			}
+		})
+
+		let getProductList = () => db.collection('products').find({ owner_id: { $ne: currentUser.owner_id } }).toArray().then(res => {
+			// console.log(res)
+			for (let i = 0; i < res.length; i++) {
+				let product = res[i];
+				db.collection('users').findOne({ owner_id: product.owner_id }, true).then(user => createProduct(product, user));
+			}
+		})
+
+		const arrSum = arr => arr ? arr.reduce((a, b) => parseInt(a) + parseInt(b), 0) : 0
+
+		let calculateRating = (user) => {
+			let sumOfRatings = arrSum(user.ratings);
+			rating = user.rating ? sumOfRatings / user.rating : 0;
+			return rating
+		}
+
+		let createProduct = (product, user) => {
+			var buyAmount = 1;
+
+			var node = document.createElement("div");
+			node.className = product.name;
+			var node2 = document.createElement("div");
+			var node3 = document.createElement("div");
+			var node4 = document.createElement("div");
+			var button = document.createElement("button");
+			button.innerHTML += " + ";
+			button.addEventListener('click', () => {
+				buyAmount++;
+				document.getElementById("input" + product.name).value = buyAmount;
+			}, true);
+
+			var button2 = document.createElement("button");
+			button2.innerHTML += " - ";
+			button2.addEventListener('click', () => {
+				buyAmount--;
+				document.getElementById("input" + product.name).value = buyAmount;
+			}, true);
+			button2.style.marginLeft = '10px';
+
+			var bAmount = document.createElement("input");
+			bAmount.disabled = true;
+			bAmount.value = buyAmount;
+			bAmount.style.width = "5%";
+			bAmount.id = "input" + product.name;
+
+			var button3 = document.createElement("button");
+			button3.innerHTML += " Buy ";
+			button3.addEventListener('click', () => {
+				buyProduct(user, product, document.getElementById("input" + product.name).value);
+				product.quantity -= buyAmount;
+				buyAmount = 1;
+				document.getElementById("input" + product.name).value = 1;
+			}, true);
+			button3.style.margin = '10px';
+
+			node.style.display = 'flex';
+			node.style.justifyContent = 'center';
+			node.style.alignItems = 'center';
+			node2.style.display = 'flex';
+			node2.style.alignItems = 'center';
+			node3.style.display = 'flex';
+			node3.style.width = '100%';
+			node3.style.alignItems = 'center';
+			node4.style.whiteSpace = 'nowrap';
+			node4.style.display = 'flex';
+			node4.style.alignItems = "center";
+			var pQuantity = document.createTextNode(product.quantity);
+			var pName = document.createTextNode('x ' + product.name + ' - $');
+			var pPrice = document.createTextNode(product.price);
+			var pPhoto = document.createElement("img");
+			var seller = document.createTextNode(product.seller + ' - ');
+			var sellerRating = document.createTextNode(calculateRating(user));
+			pPhoto.src = product.photo;
+			pPhoto.alt = "What photo ?";
+			pPhoto.style.width = "10%";
+
+			node2.className = 'quantity' + product.name;
+			node2.appendChild(pQuantity);
+			node4.appendChild(seller);
+			node4.appendChild(sellerRating);
+			node3.appendChild(node2);
+			node3.appendChild(pName);
+			node3.appendChild(pPrice);
+			node3.appendChild(button2);
+			node3.appendChild(bAmount);
+			node3.appendChild(button);
+			node3.appendChild(button3);
+			node3.appendChild(pPhoto);
+			node.appendChild(node3);
+			node.appendChild(node4);
+			document.getElementById("products").appendChild(node);
+		}
+
+		let buyProduct = (user, product, amount) => {
+			amount = parseInt(amount);
+			console.log(product.quantity, amount, product.price)
+			if (product.quantity - amount >= 0 && currentUser.wallet - product.price * amount >= 0) {
+				console.log('Buying product')
+				db.collection('products').findOneAndUpdate({ name: product.name },
+					{ $set: { "quantity": product.quantity - amount } }, { new: true })
+					.then(res => document.getElementsByClassName('quantity' + product.name)[0].innerHTML = product.quantity)
+				console.log('Quantities updated')
+				addRecord(user.name, product, amount);
+				console.log('Record added')
+				updateWallet(user, product, amount);
+				console.log('Wallet updated')
+			} else if (product.quantity - amount < 0){
+				Swal.fire({
+					title: 'Not enough product!',
+					text: `There is not enough ${product.name}`,
+					type: 'error',
+					confirmButtonText: 'Cool'
+				})
+			} else {
+				Swal.fire({
+					title: 'Not enough money!',
+					text: `There is only ${currentUser.wallet}$, need ${ product.price * amount - currentUser.wallet}$ more!`,
+					type: 'error',
+					confirmButtonText: 'Cool'
+				})
+			}
+		}
+
+		let addRecord = (username, product, amount) => db.collection('users').findOneAndUpdate({ owner_id: currentUser.owner_id },
+			{
+				$addToSet: {
+					"history": {
+						amount: amount,
+						product: product,
+						username: username
+					}
+				}
+			}).then(() => { })
+
+		let updateWallet = (user, product, amount) => {
+			db.collection('users').updateOne({ owner_id: currentUser.owner_id },
+				{ $set: { wallet: currentUser.wallet - amount * product.price } }, { upsert: true })
+			db.collection('users').updateOne({ owner_id: user.owner_id },
+				{ $set: { wallet: user.wallet + amount * product.price } }, { upsert: true })
+		}
+	</script>
+</head>
+
+<body style="display: flex; justify-content: center; background-color: aliceblue;">
+	<div class="box" style="width: 60%; margin-top: 30px;">
+		<h1 style="display: flex; justify-content: center">Store</h1>
+		<div style="margin: 0 10px; display: flex; justify-content: flex-end;">
+			<a href="./user.html" style="margin-right: 20px;">Profile</a>
+			<a href="./index.html">Logout</a>
+		</div>
+		<div id="storeItems" class="box">
+			<div id="products"> </div>
+		</div>
+	</div>
+</body>
+
+</html>

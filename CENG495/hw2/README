@@ -1,0 +1,12 @@
+Website is currently up on Azure, here is the link:
+http://odtushop.azurewebsites.net
+
+There are 10 users with name, Test1, Test2, ... Test10 and no password like this:
+
+Name: 'Test1'
+Password: ''
+
+Test1 and Test2 has 3 products each.
+
+After login, I redirect to user page where we got 2 buttons at top right to move Shop and Login pages.
+Here we can deposit or withdraw money, add, remove or change amount of items we have, and lastly vote the items we have bought previously. And at store we can buy products.
