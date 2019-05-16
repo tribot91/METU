@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>odtuShop homepage</title>
+	<link href="metuShop.css" rel="stylesheet" type="text/css" media="all">
+	<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.3.1/stitch.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+
+	<script>
+		const client = stitch.Stitch.initializeDefaultAppClient('trishop-ewxtm');
+		const db = client.getServiceClient(stitch.RemoteMongoClient.factory, 'mongodb-atlas').db('metuShop');
+		const usersColl = db.collection('users');
+
+		client.auth.loginWithCredential(new stitch.AnonymousCredential()).then(() => {
+			usersColl.find({}).toArray().then((res) => {
+				for (let i = 0; i < document.getElementsByClassName('box').length; i++) {
+					document.getElementsByClassName('box')[i].style.backgroundColor = "rgb(227, 24, 55, 0.5)"
+					document.getElementsByClassName('box')[i].style.border = "1px solid rgb(227, 24, 55, 0.5)"
+				}
+			})
+		});
+
+		let addUser = () => {
+			usersColl.insertOne({
+				owner_id: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+					var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+					return v.toString(16);
+				}),
+				name: document.getElementById("newName").value,
+				pw: document.getElementById("newPass").value, wallet: 0,
+				products: [],
+				rating: 0,
+				ratings: []
+			}).then(user => {
+				Swal.fire({
+					title: 'Hooray!',
+					text: "You created an account!",
+					type: 'success',
+					confirmButtonText: 'Cool'
+				})
+			});
+		}
+
+		let delUser = () => usersColl.deleteOne({ name: document.getElementById("delName").value, pw: document.getElementById("delPass").value }, true)
+			.then(user => Swal.fire({
+					title: 'Oops!',
+					text: `User Deleted!`,
+					type: 'success',
+					confirmButtonText: 'Bye'
+				}))
+
+		let login = () => usersColl.findOne({ name: document.getElementById("loginName").value, pw: document.getElementById("loginPass").value }, true)
+			.then((user, err) => {
+				if (user) {
+					console.log('Logged in', user);
+					window.location.href = "./user.html";
+				} else {
+					console.log('Can not login :( User ', err)
+				}
+				localStorage.setItem('user', JSON.stringify(user));
+			})
+	</script>
+</head>
+
+<body style="text-align: center">
+	<h1>
+		metuShop
+	</h1>
+	<div style="display: flex; justify-content: center;">
+		<div class="box">
+			Add User
+			<div class="field">
+				Name:
+				<input id="newName" type="text">
+			</div>
+			<div class="field">
+				Password:
+				<input id="newPass" type="password">
+			</div>
+			<button id="addUser" onclick="addUser()">Add User</button>
+		</div>
+		<div class="box">
+			Delete User
+			<div class="field">
+				Name:
+				<input id="delName" type="text">
+			</div>
+			<div class="field">
+				Password:
+				<input id="delPass" type="password">
+			</div>
+			<button id="delUser" onclick="delUser()">Delete User</button>
+		</div>
+		<div class="box">
+			Login as a User
+			<div class="field">
+				Name:
+				<input id="loginName" type="text">
+			</div>
+			<div class="field">
+				Password:
+				<input id="loginPass" type="password">
+			</div>
+			<button id="login" onclick="login()">Login</button>
+		</div>
+	</div>
+</body>
+
+</html>

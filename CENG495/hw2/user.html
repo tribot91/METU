@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>metuShop User</title>
+	<link href="metuShop.css" rel="stylesheet" type="text/css" media="all">
+	<script src="https://s3.amazonaws.com/stitch-sdks/js/bundles/4.3.1/stitch.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+	<script>
+		const client = stitch.Stitch.initializeDefaultAppClient('trishop-ewxtm');
+		const db = client.getServiceClient(stitch.RemoteMongoClient.factory, 'mongodb-atlas').db('metuShop');
+		let currentUser = {};
+		let rating = 0;
+		let name = "";
+
+		db.collection('users').findOne({ owner_id: JSON.parse(localStorage.getItem('user')).owner_id }).then(user => {
+			currentUser = user;
+			updateWallet(currentUser.wallet);
+			document.getElementById("name").innerHTML = currentUser.name;
+			getProductList();
+			getRatings();
+			getHistory();
+
+			for (let i = 0; i < document.getElementsByClassName('box').length; i++) {
+				if (JSON.parse(localStorage.getItem('color'))) {
+					document.getElementsByClassName('box')[i].style.backgroundColor = JSON.parse(localStorage.getItem('color')).color1;
+					document.getElementsByClassName('box')[i].style.borderColor = JSON.parse(localStorage.getItem('color')).color2;
+				} else {
+					document.getElementsByClassName('box')[i].style.backgroundColor = "rgb(227, 24, 55, 0.5)";
+					document.getElementsByClassName('box')[i].style.borderColor = "red";
+				}
+			}
+		})
+
+		const arrSum = arr => arr ? arr.reduce((a, b) => parseInt(a) + parseInt(b), 0) : 0
+
+		let getRatings = () => {
+			let sumOfRatings = arrSum(currentUser.ratings);
+			rating = currentUser.rating ? sumOfRatings / currentUser.rating : 0
+			document.getElementById("rating").innerHTML = rating;
+		}
+
+		let updateWallet = (val) => {
+			currentUser.wallet = val;
+			document.getElementById("wallet").innerHTML = val;
+		};
+
+		let deposit = () => db.collection('users').updateOne({ owner_id: currentUser.owner_id },
+			{ $set: { wallet: currentUser.wallet + parseInt(document.getElementById("deposit").value) } },
+			{ upsert: true }).then(() => {
+				updateWallet(currentUser.wallet + parseInt(document.getElementById("deposit").value));
+			})
+
+		let withdraw = () => db.collection('users').updateOne({ owner_id: currentUser.owner_id },
+			{ $set: { wallet: currentUser.wallet - parseInt(document.getElementById("withdraw").value) } },
+			{ upsert: true }).then(() => {
+				updateWallet(currentUser.wallet - parseInt(document.getElementById("withdraw").value));
+			})
+
+		let addProduct = () => db.collection('products').insertOne({
+			owner_id: currentUser.owner_id,
+			seller: currentUser.name,
+			name: document.getElementById("newProduct").value,
+			price: parseInt(document.getElementById("newPrice").value),
+			photo: document.getElementById("newPhoto").value,
+			quantity: 1,
+			ratings: []
+		}).then((res) => {
+			let parent = document.getElementById('products');
+			while (parent.firstChild && !parent.firstChild.remove());
+			getProductList();
+		})
+
+		let updateQuantity = (product, amount) => db.collection('products').updateOne({ name: product.name },
+			{ $set: { quantity: product.quantity + amount } },
+			{ upsert: true }).then((res) => { })
+
+		let getProductList = () => db.collection('products').find({ owner_id: { $eq: currentUser.owner_id } }).toArray().then(res => {
+			for (let index = 0; index < res.length; index++) {
+				let product = res[index];
+				createProduct(product);
+			}
+		})
+
+
+		let createProduct = (product) => {
+			var node = document.createElement("div");
+			node.className = product.name;
+			var node2 = document.createElement("div");
+			var button = document.createElement("button");
+			button.innerHTML += " + ";
+			button.addEventListener('click', () => {
+				updateQuantity(product, 1);
+				document.getElementsByClassName('quantity' + product.name)[0].innerHTML = product.quantity + 1;
+				product.quantity++;
+			}, true);
+			button.style.marginLeft = '10px';
+
+			var button2 = document.createElement("button");
+			button2.innerHTML += " - ";
+			button2.addEventListener('click', () => {
+				updateQuantity(product, -1);
+				document.getElementsByClassName('quantity' + product.name)[0].innerHTML = product.quantity - 1;
+				product.quantity--;
+			}, true);
+			button2.style.marginLeft = '30px';
+
+			var button3 = document.createElement("button");
+			button3.innerHTML += " Remove ";
+			button3.addEventListener('click', () => {
+				document.getElementById("products").removeChild(node)
+				removeProduct(product.name);
+			}, true);
+			button3.style.margin = '10px';
+
+			node.style.display = 'flex';
+			node.style.alignItems = 'center';
+			var pQuantity = document.createTextNode(product.quantity);
+			var pName = document.createTextNode('x ' + product.name + ' - $');
+			var pPrice = document.createTextNode(product.price);
+			var pPhoto = document.createElement("img");
+			pPhoto.src = product.photo;
+			pPhoto.alt = "What photo ?";
+			pPhoto.style.width = "10%";
+
+			node2.className = 'quantity' + product.name;
+			node2.appendChild(pQuantity);
+			node.appendChild(node2);
+			node.appendChild(pName);
+			node.appendChild(pPrice);
+			node.appendChild(button2);
+			node.appendChild(button);
+			node.appendChild(button3);
+			node.appendChild(pPhoto);
+			document.getElementById("products").appendChild(node);
+		}
+
+		let getHistory = () => db.collection('users').find({ owner_id: { $eq: currentUser.owner_id } }).toArray().then(res => {
+			res.map(user => {
+				if (user.history)
+					user.history.map((purchase) => createHistory(purchase))
+			})
+		})
+
+		let createHistory = (purchase) => {
+			var pNode = document.createElement("div");
+			pNode.style.justifyContent = "space-between";
+			var pNode2 = document.createElement("div");
+			var pNode4 = document.createElement("div");
+			var mergeFirstHalf = document.createElement("div");
+			mergeFirstHalf.style.display = 'flex';
+			mergeFirstHalf.style.alignItems = "center";
+			pNode4.style.whiteSpace = 'nowrap';
+			pNode4.style.display = 'flex';
+			pNode4.style.alignItems = "center";
+
+			pNode.style.display = 'flex';
+			pNode.style.alignItems = 'center';
+			var pQuantity = document.createTextNode(purchase.amount);
+			var pName = document.createTextNode(' x ' + purchase.product.name);
+			var pPhoto2 = document.createElement("img");
+			var seller = document.createTextNode(' from ' + purchase.username);
+			pPhoto2.src = purchase.product.photo;
+			pPhoto2.alt = "No pic :(";
+			pPhoto2.style.width = "10%";
+
+			// STARS --------------------------------------------
+			var array = [5, 4, 3, 2, 1];
+
+			var selectList = document.createElement("select");
+			selectList.id = purchase.product.name + "stars";
+			// STARS --------------------------------------------
+
+
+			var like = document.createElement("div");
+			like.className = "like" + purchase.product.name;
+			like.innerHTML = "&#128077";
+			like.style.marginLeft = "5px";
+			like.style.fontSize = "25px";
+			like.addEventListener('click', () => { rate(purchase.product, document.getElementById(purchase.product.name + "stars").value) }, true);
+
+			pNode2.className = 'quantity' + purchase.username;
+			pNode2.appendChild(pQuantity);
+			pNode4.appendChild(selectList);
+			pNode4.appendChild(like);
+			mergeFirstHalf.appendChild(pNode2);
+			mergeFirstHalf.appendChild(pName);
+			mergeFirstHalf.appendChild(pPhoto2);
+			mergeFirstHalf.appendChild(seller);
+			pNode.appendChild(mergeFirstHalf);
+			pNode.appendChild(pNode4);
+			document.getElementById("purchases").appendChild(pNode);
+
+			// STARS --------------------------------------------
+			for (var i = 0; i < array.length; i++) {
+				var option = document.createElement("option");
+				option.value = array[i];
+				option.text = array[i];
+				selectList.appendChild(option);
+			}
+			// STARS --------------------------------------------
+		}
+
+		let rate = (product, stars) => db.collection('products').findOneAndUpdate({ name: product.name },
+			{ $addToSet: { "ratings": currentUser.owner_id } }, { new: true })
+			.then(res => {
+				if (!res.ratings.includes(currentUser.owner_id)) {
+					userRate(product.owner_id, stars)
+
+					Swal.fire({
+						title: "Congratulations, you just voted!",
+						text: `You voted ${stars} stars!`,
+						type: 'success',
+						confirmButtonText: 'Cool'
+					})
+				} else {
+
+					Swal.fire({
+						title: 'Oops!',
+						text: "You already voted this!",
+						type: 'error',
+						confirmButtonText: 'Ok'
+					})
+				}
+			})
+
+		let userRate = (owner_id, stars) => db.collection('users').findOneAndUpdate({ owner_id: owner_id },
+			{ $inc: { "rating": 1 } }, { new: true })
+			.then(res => {
+				db.collection('users').findOneAndUpdate({ owner_id: owner_id },
+					{ $addToSet: { "ratings": stars } }, { new: true }).then(() => { })
+			})
+
+		let removeProduct = (name) => db.collection('products').deleteOne({ name: { $eq: name } }, true)
+
+		let colorSet = (color1, color2) => {
+			for (let i = 0; i < document.getElementsByClassName('box').length; i++) {
+				document.getElementsByClassName('box')[i].style.backgroundColor = color1;
+				document.getElementsByClassName('box')[i].style.borderColor = color2;
+			}
+
+			localStorage.setItem('color', JSON.stringify({ color1: color1, color2: color2 }));
+		};
+	</script>
+</head>
+
+<body style="display: flex; justify-content: center; background-color: aliceblue;">
+	<div class="box" style="width: 60%; margin-top: 30px;">
+		<div style="display: flex; justify-content: space-between; align-items: center; margin: 0 15px;">
+			<h1 style="display: flex">
+				<div id="name"></div>'s Page
+			</h1>
+			<div>
+				<div style="display: flex">
+					Wallet: <div id="wallet" style="padding-left: 5px"></div>$
+				</div>
+				<div style="display: flex">
+					Rating: <div id="rating" style="padding-left: 5px"></div>
+				</div>
+			</div>
+
+		</div>
+		<div style="margin: 0 10px; display: flex; justify-content: space-between">
+			<div style="display: flex">
+				<div onclick="colorSet('rgb(227, 24, 55, 0.2)', 'rgb(227, 24, 55)')" class="default"
+					style="background: rgb(227, 24, 55, 0.2); color: rgb(227, 24, 55, 0.2)">&#x2610;</div>
+				<div onclick="colorSet('rgb(255, 192, 203, 0.5)', 'rgb(255, 192, 203)')" class="pink"
+					style="background: rgb(255, 192, 203, 0.5); color: rgb(255, 192, 203, 0.5)">&#x2610;</div>
+				<div onclick="colorSet('rgb(144,238,144, 0.5)', 'rgb(144,238,144)')" class="lightgreen"
+					style="background: rgb(144,238,144, 0.5); color: rgb(144,238,144, 0.5)">&#x2610;</div>
+				<div onclick="colorSet('rgb(240,237,194, 0.5)', 'rgb(240,237,194)')" class="yellow"
+					style="background: rgb(240,237,194, 0.5); color: rgb(240,237,194, 0.5)">&#x2610;</div>
+				<div onclick="colorSet('rgb(102, 205, 170, 0.5)', 'rgb(102, 205, 170,)')" class="lightblue"
+					style="background: rgb(102, 205, 170, 0.5); color: rgb(102, 205, 170, 0.5)">
+					&#x2610;</div>
+			</div>
+
+			<div>
+				<a href="./product.html" style="margin-right: 20px;">Shop</a>
+				<a href="./index.html">Logout</a>
+			</div>
+
+		</div>
+		<div style="display: flex;">
+			<div class="box" style="display: flex; justify-content: space-between; width: 100%;">
+				<div>
+					<input type="number" id="deposit" value="0">
+					<button onclick="deposit()">Deposit</button>
+				</div>
+				<div>
+					<input type="number" id="withdraw" value="0">
+					<button onclick="withdraw()">Withdraw</button>
+				</div>
+			</div>
+		</div>
+		<div class="box">
+			<div style="display: flex; justify-content: space-evenly;">
+				Name:
+				<input type="text" id="newProduct" placeholder="New product" style="width: 20%;">
+				Price:
+				<input type="number" id="newPrice" placeholder="Price" style="width: 12%;">
+				Link:
+				<input type="text" id="newPhoto" placeholder="Photo Link">
+				<button onclick="addProduct()">Add Product</button>
+			</div>
+		</div>
+		<div class="box">
+			<div>
+				Your Store:
+			</div>
+			<div id="products">
+
+			</div>
+		</div>
+		<div class="box">
+			<div id="purchases">
+				Order history:
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>

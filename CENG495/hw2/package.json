@@ -1,0 +1,15 @@
+{
+  "name": "metushop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb-stitch": "^3.2.18",
+    "mongodb-stitch-browser-sdk": "^4.3.2"
+  }
+}
